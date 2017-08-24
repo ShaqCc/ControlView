@@ -42,7 +42,7 @@ public class BackgroundView extends View{
         mPaint = new Paint();
         mPaint.setAntiAlias(true);
         mPaint.setARGB(88,255,255,255);
-        mPaint.setStrokeWidth(5);
+        mPaint.setStrokeWidth(2);
     }
 
     @Override
@@ -77,7 +77,7 @@ public class BackgroundView extends View{
 
         //draw text
         mPaint.setColor(Color.parseColor("#ffffff"));
-        mPaint.setTextSize(40);
+        mPaint.setTextSize(30);
         mPaint.setTextAlign(Paint.Align.CENTER);
         for (int i = 0; i < arrVaule.length; i++) {
             if (i == arrVaule.length-1) mPaint.setTextAlign(Paint.Align.LEFT);

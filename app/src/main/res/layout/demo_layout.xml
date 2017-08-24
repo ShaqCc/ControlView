@@ -1,0 +1,24 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:tools="http://schemas.android.com/tools"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingBottom="16dp"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:paddingTop="16dp"
+                tools:context=".MainActivity" >
+
+    <com.example.aaa.myapplication.demo.MyView
+        android:id="@+id/canvasView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <Button
+        android:id="@+id/btnClearPoints"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignRight="@+id/canvasView"
+        android:layout_alignTop="@+id/canvasView"
+        android:text="ClearPoints" />
+
+</RelativeLayout>

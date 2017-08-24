@@ -9,16 +9,18 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.FrameLayout;
 
 /**
  * Created by Administrator on 2017/8/23.
  */
 
-public class MyViewGroup extends FrameLayout {
+public class MyViewGroup extends FrameLayout{
 
     private BackgroundView backgroundView;
     private LineView lineView;
+    private Button mBtReset;
 
     public MyViewGroup(@NonNull Context context) {
         this(context, null);
@@ -41,33 +43,7 @@ public class MyViewGroup extends FrameLayout {
         addView(lineView, layoutParams);
     }
 
-
-    private void moveLineViewTo(float dx, float dy) {
-        int top = lineView.getTop();
-        lineView.setTranslationY(top + dy);
+    public void reset(){
+        lineView.reset();
     }
-
-    public void testMove() {
-        lineView.setTranslationY(100);
-    }
-
-//    private int lastX,lastY;
-//    @Override
-//    public boolean onTouch(View view, MotionEvent motionEvent) {
-//
-//        switch (motionEvent.getAction()) {
-//            case MotionEvent.ACTION_DOWN:
-//                lastY = (int) motionEvent.getRawY();
-//                break;
-//            case MotionEvent.ACTION_MOVE:
-//
-//                float dealtY = motionEvent.getRawY() - lastY;
-//                System.out.println("移动：" + dealtY);
-////                moveLineViewTo(0, dealtY);
-//                view.setTranslationY(view.getTop()+dealtY);
-//                lastY = (int) motionEvent.getRawY();
-//                break;
-//        }
-//        return true;
-//    }
 }
