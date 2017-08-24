@@ -34,6 +34,7 @@ public class LineView extends View {
     private int widthUnit;//单元格宽度
     private final int LINE_WIDTH = 3;
     private ArrayList<float[]> mPointList = new ArrayList<>();
+    private ArrayList<float[]> mEdleList = new ArrayList<>();
     private boolean drawPoint = true;
     private boolean initPoint = false;
     private int currentPointIndex;//当前选中的点索引
@@ -47,6 +48,8 @@ public class LineView extends View {
     boolean drawCurveFlag;
 
     private static int STEPS = 12;//曲线精度
+
+    private OnPointMoveListener moveListener;
 
 
     public LineView(Context context) {
@@ -96,6 +99,7 @@ public class LineView extends View {
         }
         //draw point
         drawPoints(canvas);
+        drawEdlePoints(canvas);
 
         linePath.reset();
         curvePath.reset();
@@ -106,6 +110,22 @@ public class LineView extends View {
         //draw curve
         if (mPointList.size() > 2) {
             drawCurve(canvas);
+        }
+    }
+
+    /**
+     * 画单独的点
+     *
+     * @param canvas
+     */
+    private void drawEdlePoints(Canvas canvas) {
+        if (mEdleList.size() > 0) {
+            mPaint.setStrokeWidth(28);
+            mPaint.setColor(Color.WHITE);
+            mPaint.setStrokeCap(Paint.Cap.ROUND);
+            for (int i = 0; i < mEdleList.size(); i++) {
+                canvas.drawPoint(mPointList.get(i)[0], mEdleList.get(i)[1], mPaint);
+            }
         }
     }
 
@@ -211,35 +231,54 @@ public class LineView extends View {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         int y = (int) event.getRawY();
+        int x = (int) event.getRawX();
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 drawPoint = true;
-                float relativeY = event.getY();
-//                if (Math.abs(relativeY - getMeasuredHeight() / 2) > mTolerance) {
-//                    //点击线以外了
-//                    TAG_CURRENT = TAG_ELSE;
-//                    return false;
-//                } else {
                 //点击线上,判断点到点还是线
                 switchPointType(event.getX(), event.getY());
-//                }
                 break;
             case MotionEvent.ACTION_MOVE:
                 drawPoint = false;
                 int deltaY = y - mLastY;
                 switch (TAG_CURRENT) {
                     case TAG_LINE:
-                        if (!(getCurrentY() <= 50 || getCurrentY() >= height - 50))
+                        if (!(getCurrentY() <= 50 || getCurrentY() >= height - 50)) {
                             setTranslationY(getTranslationY() + deltaY);
+                            if (moveListener != null && mPointList.size() > 2)//移动监听
+                                moveListener.onPointMove((int) mPointList.get(currentPointIndex)[0],
+                                        (int) (mPointList.get(currentPointIndex)[1] + getTranslationY()));
+                        } else {
+                            setTranslationY(0);
+                            TAG_CURRENT = TAG_ELSE;//停止滑动
+                        }
                         break;
                     case TAG_POINT:
                         if (event.getY() + getTranslationY() <= 50 || event.getY() + getTranslationY() >= height - 50)//判断点的移动范围
                         {
                             mPointList.remove(currentPointIndex);
                             TAG_CURRENT = TAG_ELSE;
+                            if (moveListener != null) moveListener.onPointMove(0, 0);
                         } else {
+                            //移动点的位置
+                            //要判断X坐标，与左右两点比较
                             mPointList.get(currentPointIndex)[0] = event.getX();
                             mPointList.get(currentPointIndex)[1] = event.getY();
+                            if (moveListener != null)
+                                moveListener.onPointMove((int) (event.getX()), (int) (event.getY() + getTranslationY()));
+//                            if (currentPointIndex > 1 || currentPointIndex < mPointList.size() - 1) {
+//                                //小于左边的点
+//                                //或大于右边的点
+//                                if (mPointList.get(currentPointIndex)[0] <= mPointList.get(currentPointIndex - 1)[0]
+//                                        || mPointList.get(currentPointIndex)[0] >= mPointList.get(currentPointIndex + 1)[0]) {
+//
+//                                    mEdleList.add(new float[]{mPointList.get(currentPointIndex)[0], mPointList.get(currentPointIndex)[1]});
+//                                    mPointList.remove(currentPointIndex);
+//                                    //更新文字指示
+//                                    if (moveListener != null) moveListener.onPointMove(0, 0);
+//                                    TAG_CURRENT = TAG_ELSE;
+//                                }
+//                            }
                         }
                         invalidate();
                         break;
@@ -251,11 +290,14 @@ public class LineView extends View {
                 if (drawPoint) {
                     System.out.println("点击原始位置getRawY()=" + event.getRawX() + "      相对位置getY()=" + event.getY());
                     addPoint(event.getRawX(), event.getY());
+                    if (moveListener != null)
+                        moveListener.onPointMove((int) event.getX(), (int) (event.getY() + getTranslationY()));
                 }
                 System.out.println("直线当前位置：" + getCurrentY());
                 break;
         }
         mLastY = y;
+        lastX = x;
         return true;
     }
 
@@ -276,7 +318,7 @@ public class LineView extends View {
             Collections.sort(mPointList, new SortPoint());
             invalidate();
         } else {
-            Toast.makeText(getContext(), "空间太小了", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "小于最小间隔，不能创建锚点", Toast.LENGTH_SHORT).show();
         }
 //        }
     }
@@ -325,9 +367,10 @@ public class LineView extends View {
 
 
     public void reset() {
-        for (int i = 1; i < mPointList.size() - 1; i++) {
-            mPointList.remove(i);
-        }
+        mPointList.clear();
+        mEdleList.clear();
+        mPointList.add(new float[]{0, getMeasuredHeight() / 2});
+        mPointList.add(new float[]{width, getMeasuredHeight() / 2});
         setTranslationY(0);
         invalidate();
     }
@@ -337,5 +380,13 @@ public class LineView extends View {
         public int compare(float[] o1, float[] o2) {
             return o1[0] > o2[0] ? 1 : -1;
         }
+    }
+
+    interface OnPointMoveListener {
+        void onPointMove(int valueX, int valueY);
+    }
+
+    public void setOnPointMoveListener(OnPointMoveListener listener) {
+        this.moveListener = listener;
     }
 }
