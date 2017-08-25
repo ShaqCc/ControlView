@@ -92,26 +92,59 @@ public class MyViewGroup extends FrameLayout {
         int min = markArr[0];
         int max = markArr[markArr.length - 1];
         int rowIndex = valueX / mWidthUnit;//点击位置在水平位置区块索引
-        switch (rowIndex) {
-            case 0:
-                return String.valueOf(min);
-            case 11:
-                return String.valueOf(max);
-            default:
-                min = markArr[rowIndex];
-                max = markArr[rowIndex + 1];
-                unit = max - min;
-                System.out.println("-----------------start------------------");
-                System.out.println("索引值：" + rowIndex + "最小值：" + min + "最大值：" + max + "unit=" + unit);
+
+        if (rowIndex==0){
+            return String.valueOf(min);
+        }else if (rowIndex == 11){
+            return String.valueOf(max);
+        }else if (rowIndex>0 || rowIndex<11){
+            min = markArr[rowIndex];
+            max = markArr[rowIndex + 1];
+            unit = max - min;
+            System.out.println("-----------------start------------------");
+            System.out.println("索引值：" + rowIndex + "最小值：" + min + "最大值：" + max + "unit=" + unit);
 
 
-                double percent = MathUtils.div(valueX - mWidthUnit * rowIndex, mWidthUnit);
-                System.out.println("百分比："+percent);
-                double i = new BigDecimal(percent * unit).setScale(0,BigDecimal.ROUND_HALF_UP).doubleValue();
-                System.out.println("结果：" + i);
-                System.out.println("------------------end-----------------");
-                return String.valueOf(min + i);
+            double percent = MathUtils.div(valueX - mWidthUnit * rowIndex, mWidthUnit);
+            System.out.println("百分比：" + percent);
+            double i = new BigDecimal(percent * unit).setScale(0, BigDecimal.ROUND_HALF_UP).doubleValue();
+            System.out.println("结果：" + i);
+            System.out.println("------------------end-----------------");
+            return String.valueOf(min + i);
+        }else {
+            return "0";
         }
+//        switch (rowIndex) {
+//            case 0:
+//                return String.valueOf(min);
+//            case 11:
+//                return String.valueOf(max);
+//            case 1:
+//            case 2:
+//            case 3:
+//            case 4:
+//            case 5:
+//            case 6:
+//            case 7:
+//            case 8:
+//            case 9:
+//            case 10:
+//                min = markArr[rowIndex];
+//                max = markArr[rowIndex + 1];
+//                unit = max - min;
+//                System.out.println("-----------------start------------------");
+//                System.out.println("索引值：" + rowIndex + "最小值：" + min + "最大值：" + max + "unit=" + unit);
+//
+//
+//                double percent = MathUtils.div(valueX - mWidthUnit * rowIndex, mWidthUnit);
+//                System.out.println("百分比：" + percent);
+//                double i = new BigDecimal(percent * unit).setScale(0, BigDecimal.ROUND_HALF_UP).doubleValue();
+//                System.out.println("结果：" + i);
+//                System.out.println("------------------end-----------------");
+//                return String.valueOf(min + i);
+//            default:
+//                return "0";
+//        }
     }
 
     @Override
@@ -135,7 +168,7 @@ public class MyViewGroup extends FrameLayout {
     /**
      * 移除当前点
      */
-    public void removeCurrentPoint(){
+    public void removeCurrentPoint() {
         lineView.removeSelectPoint();
     }
 }
