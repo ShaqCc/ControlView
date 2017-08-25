@@ -20,5 +20,12 @@ public class MainActivity extends AppCompatActivity {
                 myViewGroup.reset();
             }
         });
+
+        findViewById(R.id.bt_remove).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                myViewGroup.removeCurrentPoint();
+            }
+        });
     }
 }

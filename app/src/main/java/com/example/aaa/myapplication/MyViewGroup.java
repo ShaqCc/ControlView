@@ -131,4 +131,11 @@ public class MyViewGroup extends FrameLayout {
         //reset text
         textView.setText(String.format(formatStr, "0", "0", "1"));
     }
+
+    /**
+     * 移除当前点
+     */
+    public void removeCurrentPoint(){
+        lineView.removeSelectPoint();
+    }
 }

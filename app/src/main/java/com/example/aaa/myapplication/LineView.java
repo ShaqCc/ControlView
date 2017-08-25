@@ -5,13 +5,11 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.Point;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.Toast;
 
 import com.example.aaa.myapplication.demo.Cubic;
 
@@ -50,6 +48,7 @@ public class LineView extends View {
     private static int STEPS = 12;//曲线精度
 
     private OnPointMoveListener moveListener;
+    private int mGlobal_padding = 10;
 
 
     public LineView(Context context) {
@@ -99,7 +98,7 @@ public class LineView extends View {
         }
         //draw point
         drawPoints(canvas);
-        drawEdlePoints(canvas);
+//        drawEdlePoints(canvas);
 
         linePath.reset();
         curvePath.reset();
@@ -149,13 +148,14 @@ public class LineView extends View {
         List<Cubic> calculate_y = calculate(points_y);
         curvePath.moveTo(calculate_x.get(0).eval(0), calculate_y.get(0).eval(0));
 
+
         for (int i = 0; i < calculate_x.size(); i++) {
             for (int j = 1; j <= STEPS; j++) {
                 float u = j / (float) STEPS;
-                curvePath.lineTo(calculate_x.get(i).eval(u), calculate_y.get(i)
-                        .eval(u));
+                curvePath.lineTo(calculate_x.get(i).eval(u), calculate_y.get(i).eval(u));
             }
         }
+        mPaint.setColor(Color.WHITE);
         canvas.drawPath(curvePath, mPaint);
     }
 
@@ -184,10 +184,12 @@ public class LineView extends View {
         }
 
         List<Cubic> cubics = new LinkedList<Cubic>();
+        /* a + b*u + c*u^2 +d*u^3 */
         for (i = 0; i < n; i++) {
-            Cubic c = new Cubic(x.get(i), D[i], 3 * (x.get(i + 1) - x.get(i))
-                    - 2 * D[i] - D[i + 1], 2 * (x.get(i) - x.get(i + 1)) + D[i]
-                    + D[i + 1]);
+            Cubic c = new Cubic(x.get(i),
+                    D[i],
+                    3 * (x.get(i + 1) - x.get(i)) - 2 * D[i] - D[i + 1],
+                    2 * (x.get(i) - x.get(i + 1)) + D[i] + D[i + 1]);
             cubics.add(c);
         }
         return cubics;
@@ -239,11 +241,12 @@ public class LineView extends View {
                 switchPointType(event.getX(), event.getY());
                 break;
             case MotionEvent.ACTION_MOVE:
-                drawPoint = false;
+
                 int deltaY = y - mLastY;
+                if (Math.abs(deltaY) > 10) drawPoint = false;
                 switch (TAG_CURRENT) {
                     case TAG_LINE:
-                        if (!(getCurrentY() <= 50 || getCurrentY() >= height - 50)) {
+                        if (!(getCurrentY() <= mGlobal_padding || getCurrentY() >= height - mGlobal_padding)) {
                             setTranslationY(getTranslationY() + deltaY);
                             if (moveListener != null && mPointList.size() > 2)//移动监听
                                 moveListener.onPointMove((int) mPointList.get(currentPointIndex)[0],
@@ -254,31 +257,34 @@ public class LineView extends View {
                         }
                         break;
                     case TAG_POINT:
-                        if (event.getY() + getTranslationY() <= 50 || event.getY() + getTranslationY() >= height - 50)//判断点的移动范围
+                        if (event.getY() + getTranslationY() <= mGlobal_padding || event.getY() + getTranslationY() >= height - mGlobal_padding)//判断点的移动范围
                         {
                             mPointList.remove(currentPointIndex);
                             TAG_CURRENT = TAG_ELSE;
                             if (moveListener != null) moveListener.onPointMove(0, 0);
                         } else {
                             //移动点的位置
-                            //要判断X坐标，与左右两点比较
-                            mPointList.get(currentPointIndex)[0] = event.getX();
-                            mPointList.get(currentPointIndex)[1] = event.getY();
-                            if (moveListener != null)
-                                moveListener.onPointMove((int) (event.getX()), (int) (event.getY() + getTranslationY()));
-//                            if (currentPointIndex > 1 || currentPointIndex < mPointList.size() - 1) {
-//                                //小于左边的点
-//                                //或大于右边的点
-//                                if (mPointList.get(currentPointIndex)[0] <= mPointList.get(currentPointIndex - 1)[0]
-//                                        || mPointList.get(currentPointIndex)[0] >= mPointList.get(currentPointIndex + 1)[0]) {
-//
-//                                    mEdleList.add(new float[]{mPointList.get(currentPointIndex)[0], mPointList.get(currentPointIndex)[1]});
-//                                    mPointList.remove(currentPointIndex);
-//                                    //更新文字指示
-//                                    if (moveListener != null) moveListener.onPointMove(0, 0);
-//                                    TAG_CURRENT = TAG_ELSE;
-//                                }
-//                            }
+                            if (event.getX() > width - mGlobal_padding || event.getX() < mGlobal_padding) {
+                                TAG_CURRENT = TAG_ELSE;
+                            } else {
+                                mPointList.get(currentPointIndex)[0] = event.getX();
+                                mPointList.get(currentPointIndex)[1] = event.getY();
+                                if (moveListener != null)
+                                    moveListener.onPointMove((int) (event.getX()), (int) (event.getY() + getTranslationY()));
+
+                                //要判断X坐标，与左右两点比较
+                                if (currentPointIndex > 1 || currentPointIndex < mPointList.size() - 1) {
+                                    //小于左边的点
+                                    //或大于右边的点
+                                    if (mPointList.get(currentPointIndex)[0] <= mPointList.get(currentPointIndex - 1)[0]
+                                            || mPointList.get(currentPointIndex)[0] >= mPointList.get(currentPointIndex + 1)[0]) {
+                                        mPointList.remove(currentPointIndex);
+                                        //更新文字指示
+                                        if (moveListener != null) moveListener.onPointMove(0, 0);
+                                        TAG_CURRENT = TAG_ELSE;
+                                    }
+                                }
+                            }
                         }
                         invalidate();
                         break;
@@ -293,7 +299,6 @@ public class LineView extends View {
                     if (moveListener != null)
                         moveListener.onPointMove((int) event.getX(), (int) (event.getY() + getTranslationY()));
                 }
-                System.out.println("直线当前位置：" + getCurrentY());
                 break;
         }
         mLastY = y;
@@ -308,19 +313,15 @@ public class LineView extends View {
     private int TAG_CURRENT = TAG_ELSE;//初始化
 
     public void addPoint(float dx, float dy) {
-        float positionY = dy + getTranslationY();
-        System.out.println("添加点，Y=" + positionY);
-//        if (Math.abs(positionY - getCurrentY()) < mTolerance) {
         //判断是否添加点
         if (canAddPoint(dx)) {
             mPointList.add(new float[]{dx, dy});
             //排序
             Collections.sort(mPointList, new SortPoint());
-            invalidate();
+            postInvalidateDelayed(200);
         } else {
-            Toast.makeText(getContext(), "小于最小间隔，不能创建锚点", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(getContext(), "小于最小间隔，不能创建锚点", Toast.LENGTH_SHORT).show();
         }
-//        }
     }
 
     /**
@@ -334,7 +335,8 @@ public class LineView extends View {
         for (int i = 0; i < mPointList.size(); i++) {
             if (Math.abs(mPointList.get(i)[0] - x) <= 30) {
                 //点到point上了
-                Toast.makeText(getContext(), "这是第" + i + "个点", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(getContext(), "这是第" + i + "个点", Toast.LENGTH_SHORT).show();
+                currentPointIndex = i;
                 return false;
             } else if (Math.abs(mPointList.get(i)[0] - x) < widthUnit) return false;
         }
@@ -348,10 +350,10 @@ public class LineView extends View {
      */
     private void switchPointType(float x, float y) {
         for (int i = 0; i < mPointList.size(); i++) {
-            if (i == 0 || i == mPointList.size() - 1) {
-                TAG_CURRENT = TAG_LINE;
-                continue;
-            }
+//            if (i == 0 || i == mPointList.size() - 1) {
+//                TAG_CURRENT = TAG_LINE;
+//                continue;
+//            }
             if (Math.abs(mPointList.get(i)[0] - x) <= 30 && Math.abs(mPointList.get(i)[1] - y) <= 30) {
                 //点到point上了
                 TAG_CURRENT = TAG_POINT;
@@ -388,5 +390,15 @@ public class LineView extends View {
 
     public void setOnPointMoveListener(OnPointMoveListener listener) {
         this.moveListener = listener;
+    }
+
+    /**
+     * 删除当前的点
+     */
+    public void removeSelectPoint() {
+        if (mPointList != null && mPointList.size() > 2 && currentPointIndex != 0 && currentPointIndex != mPointList.size() - 1) {
+            mPointList.remove(currentPointIndex);
+            invalidate();
+        }
     }
 }
