@@ -71,17 +71,24 @@ public class MyViewGroup extends FrameLayout {
 
     private String caculateValuedB(int valueY) {
         int height = backgroundView.getBackgroundHeight();
+        System.out.println("valueY=" + valueY);
+        int delta = 0;
 
-        if (valueY > 0) {
-            if (valueY > height / 2) {
+        if (valueY!=0){
+            if (valueY >= height / 2) {
                 //负值
-                int i = valueY - height / 2;
-                return String.valueOf(-i * 30 / height);
+                delta = -(valueY - height / 2);
             } else if (valueY < height / 2) {
                 //正值
-                int i = height / 2 - valueY;
-                return String.valueOf(i * 30 / height);
-            } else return "0";
+                delta = height / 2 - valueY;
+            }
+            int result = delta * 30 / height;
+            System.out.println("dB=" + result);
+            if (Math.abs(result) <= 15)
+                return String.valueOf(result);
+            else if (result > 15)
+                return "15";
+            else return "-15";
         }
         return "0";
     }
@@ -93,11 +100,7 @@ public class MyViewGroup extends FrameLayout {
         int max = markArr[markArr.length - 1];
         int rowIndex = valueX / mWidthUnit;//点击位置在水平位置区块索引
 
-        if (rowIndex==0){
-            return String.valueOf(min);
-        }else if (rowIndex == 11){
-            return String.valueOf(max);
-        }else if (rowIndex>0 || rowIndex<11){
+        if (rowIndex > 0 || rowIndex < 11) {
             min = markArr[rowIndex];
             max = markArr[rowIndex + 1];
             unit = max - min;
@@ -111,7 +114,11 @@ public class MyViewGroup extends FrameLayout {
             System.out.println("结果：" + i);
             System.out.println("------------------end-----------------");
             return String.valueOf(min + i);
-        }else {
+        } else if (rowIndex == 0) {
+            return String.valueOf(min);
+        } else if (rowIndex == 11) {
+            return String.valueOf(max);
+        } else {
             return "0";
         }
 //        switch (rowIndex) {
