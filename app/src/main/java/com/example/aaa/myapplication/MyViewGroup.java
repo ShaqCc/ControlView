@@ -99,8 +99,8 @@ public class MyViewGroup extends FrameLayout {
         int min = markArr[0];
         int max = markArr[markArr.length - 1];
         int rowIndex = valueX / mWidthUnit;//点击位置在水平位置区块索引
-
-        if (rowIndex > 0 || rowIndex < 11) {
+        System.out.println(" 索引块 ："+rowIndex);
+        if (rowIndex > 0 && rowIndex < 11) {
             min = markArr[rowIndex];
             max = markArr[rowIndex + 1];
             unit = max - min;

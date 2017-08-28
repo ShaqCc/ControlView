@@ -5,6 +5,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.RectF;
+import android.graphics.Region;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
@@ -36,6 +38,7 @@ public class LineView extends View {
     private boolean drawPoint = true;
     private boolean initPoint = false;
     private int currentPointIndex;//当前选中的点索引
+    private int currentSignlePtIndex;//当前选中的孤立点索引
 
     private Path linePath;
     private Path curvePath;
@@ -51,9 +54,9 @@ public class LineView extends View {
     private int mGlobal_padding = 10;
 
     private final static int LEFT_DIRECTION = -1;//点 向左移动
-    private final static int RIGHT_DIRECTION = -1;//点 向右移动
+    private final static int RIGHT_DIRECTION = 1;//点 向右移动
     private final static int VERTICAL = 0;//点 停止状态 | 竖直移动
-    private static int HORIZONTAL_TAG = VERTICAL;//点 当前移动方向
+    private int HORIZONTAL_TAG = VERTICAL;//点 当前移动方向
 
 
     public LineView(Context context) {
@@ -109,10 +112,10 @@ public class LineView extends View {
         curvePath.reset();
 
         //draw lines
-        drawLines(canvas);
+//        drawLines(canvas);
 
         //draw curve
-        if (mPointList.size() > 2) {
+        if (mPointList.size() > 1) {
             drawCurve(canvas);
         }
     }
@@ -244,6 +247,9 @@ public class LineView extends View {
                 drawPoint = true;
                 //点击线上,判断点到点还是线
                 switchPointType(event.getX(), event.getY());
+                //是否
+                boolean onPath = isOnPath((int) event.getX(), (int) event.getY());
+                System.out.println("在曲线上：" + onPath);
                 break;
             case MotionEvent.ACTION_MOVE:
 
@@ -255,15 +261,22 @@ public class LineView extends View {
                 else HORIZONTAL_TAG = VERTICAL;
 
                 //如果移动的距离超过10，则不能添加点
-                if (Math.abs(deltaY) > 10) drawPoint = false;
+                if (Math.abs(deltaY) > 5) drawPoint = false;
 
                 //根据当前选中的是点还是线，更新UI
                 switch (TAG_CURRENT) {
+                    case TAG_SIGNLE:
+                        if (currentSignlePtIndex >= 0) {
+                            mEdleList.get(currentSignlePtIndex)[0] = event.getX();
+                            mEdleList.get(currentSignlePtIndex)[1] = event.getY();
+                            invalidate();
+                        }
+                        break;
                     case TAG_LINE:
                         updatePointPosition(0, deltaY);
                         if (moveListener != null && mPointList.size() > 2) {
                             //移动监听
-                            if (currentPointIndex > 0) {
+                            if (currentPointIndex > 0 && currentPointIndex != mPointList.size() - 1) {
                                 moveListener.onPointMove((int) mPointList.get(currentPointIndex)[0],
                                         (int) mPointList.get(currentPointIndex)[1]);
                             } else moveListener.onPointMove(0, 0);
@@ -288,31 +301,17 @@ public class LineView extends View {
                                 mPointList.get(currentPointIndex)[0] = event.getX();
                                 mPointList.get(currentPointIndex)[1] = event.getY();
                                 if (moveListener != null)
-                                    moveListener.onPointMove((int) (event.getX()), (int) (event.getY() + getTranslationY()));
+                                    moveListener.onPointMove((int) (event.getX()), (int) event.getY());
 
                                 //要判断X坐标，与左右两点比较
-                                if (currentPointIndex > 1 || currentPointIndex < mPointList.size() - 1) {
+                                if (currentPointIndex > 0 && currentPointIndex < mPointList.size() - 1) {
                                     //小于左边的点
                                     //或大于右边的点
                                     if (mPointList.get(currentPointIndex)[0] <= mPointList.get(currentPointIndex - 1)[0]
                                             || mPointList.get(currentPointIndex)[0] >= mPointList.get(currentPointIndex + 1)[0]) {
 
-                                        //加入孤立点
-                                        mEdleList.add(mPointList.get(currentPointIndex));
-
-                                        //更改被重叠的点Y轴值
-//                                        if (HORIZONTAL_TAG == RIGHT_DIRECTION) {
-//                                            //改变右边点的坐标
-//                                            mPointList.get(currentPointIndex + 1)[1] += height / 30;
-//                                        } else if (HORIZONTAL_TAG == LEFT_DIRECTION) {
-//                                            //改变左边点坐标
-//                                            mPointList.get(currentPointIndex - 1)[1] += height / 30;
-//                                        }
-                                        //更新文字指示
-                                        if (moveListener != null) moveListener.onPointMove(0, 0);
-                                        //移除当前的点
-                                        removeCurrentPoint();
-                                        TAG_CURRENT = TAG_ELSE;
+                                        //更改相邻点的Y轴值
+                                        updateBesidePoint();
                                     }
                                 }
                             }
@@ -325,7 +324,7 @@ public class LineView extends View {
             case MotionEvent.ACTION_UP:
                 //draw point
                 if (drawPoint) {
-                    System.out.println("点击原始位置getRawY()=" + event.getRawX() + "      相对位置getY()=" + event.getY());
+                    System.out.println("点击原始位置getRawY()=" + event.getRawY() + "      相对位置getY()=" + event.getY());
                     addPoint(event.getRawX(), event.getY());
                     if (moveListener != null && currentPointIndex > 0)
                         moveListener.onPointMove((int) mPointList.get(currentPointIndex)[0], (int) mPointList.get(currentPointIndex)[1]);
@@ -337,10 +336,30 @@ public class LineView extends View {
         return true;
     }
 
+    /**
+     * 更新曲线
+     */
+    private void updateBesidePoint() {
+        if (HORIZONTAL_TAG == RIGHT_DIRECTION) {
+            //处理右边的点
+            mEdleList.add(mPointList.get(currentPointIndex + 1));
+            removePoint(currentPointIndex + 1);
+        } else if (HORIZONTAL_TAG == LEFT_DIRECTION) {
+            //处理左边的点
+            mEdleList.add(mPointList.get(currentPointIndex - 1));
+            removePoint(currentPointIndex - 1);
+        }
+        //更新文字指示
+//        if (moveListener != null) moveListener.onPointMove(0, 0);
+        TAG_CURRENT = TAG_ELSE;
+    }
+
 
     private final int TAG_POINT = 1;//触点在点上
     private final int TAG_LINE = 2;//触点在线上
-    private final int TAG_ELSE = 3;//无用触点
+    private final int TAG_ELSE = 3;//空白区域
+    private final int TAG_SIGNLE = -1;//孤立的点
+
 
     private int TAG_CURRENT = TAG_ELSE;//初始化
 
@@ -382,11 +401,18 @@ public class LineView extends View {
      * @param x
      */
     private void switchPointType(float x, float y) {
+        //判断是不是孤立的点
+        if (mEdleList.size() > 0) {
+            for (int i = 0; i < mEdleList.size(); i++) {
+                if (Math.abs(mEdleList.get(i)[0] - x) <= 30 && Math.abs(mEdleList.get(i)[1] - y) <= 30) {
+                    TAG_CURRENT = TAG_SIGNLE;
+                    currentSignlePtIndex = i;
+                    System.out.println("Type=孤立点");
+                    return;
+                }
+            }
+        }
         for (int i = 0; i < mPointList.size(); i++) {
-//            if (i == 0 || i == mPointList.size() - 1) {
-//                TAG_CURRENT = TAG_LINE;
-//                continue;
-//            }
             if (Math.abs(mPointList.get(i)[0] - x) <= 30 && Math.abs(mPointList.get(i)[1] - y) <= 30) {
                 //点到point上了
                 TAG_CURRENT = TAG_POINT;
@@ -467,12 +493,31 @@ public class LineView extends View {
         invalidate();
     }
 
+    /**
+     * 移除指定的点
+     *
+     * @param index
+     */
+    private void removePoint(int index) {
+        if (index > 0)
+            mPointList.remove(index);
+        currentPointIndex = -1;
+    }
+
 
     /**
-     * 移除当前的点
+     * 判断点击位置是否在path上
+     *
+     * @param x
+     * @param y
+     * @return
      */
-    private void removeCurrentPoint() {
-        mPointList.remove(currentPointIndex);
-        currentPointIndex = -1;
+    private boolean isOnPath(int x, int y) {
+        RectF bounds = new RectF();
+        curvePath.computeBounds(bounds, true);
+        Region region = new Region();
+        region.setPath(curvePath, new Region((int) bounds.left, (int) bounds.top,
+                (int) bounds.right, (int) bounds.bottom));
+        return region.contains(x, y);
     }
 }
